@@ -29,7 +29,6 @@ void UGrabber::SetupInputComponent()
 	InputComponent = GetOwner()->FindComponentByClass<UInputComponent>();
 	if (InputComponent)
 	{
-		/// bind the input axis
 		InputComponent->BindAction("Grab", IE_Pressed, this, &UGrabber::Grab);
 		InputComponent->BindAction("Grab", IE_Released, this, &UGrabber::Release);
 	}
@@ -43,11 +42,7 @@ void UGrabber::FindPhysicsHandleComponent()
 {
 	/// look for attached physics handle
 	PhysicsHandle = GetOwner()->FindComponentByClass<UPhysicsHandleComponent>();
-	if (PhysicsHandle)
-	{
-
-	}
-	else
+	if (PhysicsHandle == nullptr)
 	{
 		UE_LOG(LogTemp, Error, TEXT("Unable to find PhysicsHandleComponent on %s"), *GetOwner()->GetName());
 	}
@@ -55,30 +50,25 @@ void UGrabber::FindPhysicsHandleComponent()
 
 void UGrabber::Grab()
 {
-	UE_LOG(LogTemp, Warning, TEXT("Grab Pressed"));
-
 	/// try and reach any actors with physics body collision channel set
 	auto HitResult = GetFirstPhysicsBodyInReach();
 	auto ComponentToGrab = HitResult.GetComponent();
 	auto ActorHit = HitResult.GetActor();
 
-	/// if we hit something, then attach a physics handle
-	if (ActorHit)
+	/// if we hit something, and we have the physics handle, then attach a physics handle
+	if (ActorHit && PhysicsHandle)
 	{
-		/// attach physics handle
 		PhysicsHandle->GrabComponentAtLocationWithRotation(
 			ComponentToGrab,
 			NAME_None,
 			ComponentToGrab->GetOwner()->GetActorLocation(),
-			FRotator(0)
+			ComponentToGrab->GetOwner()->GetActorRotation()
 		);
 	}
 }
 
 void UGrabber::Release()
 {
-	UE_LOG(LogTemp, Warning, TEXT("Grab Released"));
-
 	PhysicsHandle->ReleaseComponent();
 }
 
@@ -87,55 +77,48 @@ void UGrabber::TickComponent( float DeltaTime, ELevelTick TickType, FActorCompon
 {
 	Super::TickComponent( DeltaTime, TickType, ThisTickFunction );
 
-	FRotator PlayerRotation;
-	FVector PlayerLocation;
-
-	// get the player viewpoint this tick
-	GetWorld()->GetFirstPlayerController()->GetPlayerViewPoint(OUT PlayerLocation, OUT PlayerRotation);
-
-	FVector LineTraceEnd = PlayerLocation + (PlayerRotation.Vector() * Reach);
-
 	/// if the physics handle is attached
 	if (PhysicsHandle->GrabbedComponent)
 	{
 		/// move the object that we're holding
-		PhysicsHandle->SetTargetLocation(LineTraceEnd);
-	}
-		
+		PhysicsHandle->SetTargetLocation(GetReachLineEnd());
+	}		
 }
 
 const FHitResult UGrabber::GetFirstPhysicsBodyInReach()
 {
-	FRotator PlayerRotation;
-	FVector PlayerLocation;
-
-	// get the player viewpoint this tick
-	GetWorld()->GetFirstPlayerController()->GetPlayerViewPoint(OUT PlayerLocation, OUT PlayerRotation);
-
-	FVector LineTraceEnd = PlayerLocation + (PlayerRotation.Vector() * Reach);
+	FHitResult HitResult;
 
 	/// setup query parameters
 	FCollisionQueryParams TraceParameters(FName(TEXT("")), false, GetOwner());
-
-	FHitResult Hit;
-
-	// ray cast out to reach distance
 	GetWorld()->LineTraceSingleByObjectType(
-		OUT Hit,
-		PlayerLocation,
-		LineTraceEnd,
+		OUT HitResult,
+		GetReachLineStart(),
+		GetReachLineEnd(),
 		FCollisionObjectQueryParams(ECollisionChannel::ECC_PhysicsBody),
 		TraceParameters
 	);
 
-	/// see what we hit
-	AActor* HitActor = Hit.GetActor();
-	if (HitActor)
-	{
-		/// log what we hit
-		UE_LOG(LogTemp, Warning, TEXT("Hit Actor: %s"), *HitActor->GetName());
-	}
+	return HitResult;
+}
 
-	return Hit;
+FVector UGrabber::GetReachLineStart()
+{
+	FRotator PlayerRotation;
+	FVector PlayerLocation;
+
+	GetWorld()->GetFirstPlayerController()->GetPlayerViewPoint(OUT PlayerLocation, OUT PlayerRotation);
+
+	return PlayerLocation;
+}
+
+FVector UGrabber::GetReachLineEnd()
+{
+	FRotator PlayerRotation;
+	FVector PlayerLocation;
+
+	GetWorld()->GetFirstPlayerController()->GetPlayerViewPoint(OUT PlayerLocation, OUT PlayerRotation);
+
+	return PlayerLocation + (PlayerRotation.Vector() * Reach);
 }
 
