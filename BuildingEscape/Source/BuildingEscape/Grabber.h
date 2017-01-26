@@ -28,7 +28,11 @@ private:
 	UPhysicsHandleComponent* PhysicsHandle = nullptr;	
 	UInputComponent* InputComponent = nullptr;
 
-
+	void SetupInputComponent();
+	void FindPhysicsHandleComponent();
 	void Grab();
 	void Release();
+
+	// Return hit for first physics body in reach
+	const FHitResult GetFirstPhysicsBodyInReach();
 };
