@@ -30,4 +30,5 @@ private:
 
 
 	void Grab();
+	void Release();
 };
