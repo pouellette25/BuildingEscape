@@ -5,6 +5,11 @@
 
 #define OUT
 
+float UOpenDoor::GetOpenAngle() const
+{
+	UE_LOG(LogTemp, Warning, TEXT("Returning door angle from c++: %f"), OpenAngle);
+	return OpenAngle;
+}
 // Sets default values for this component's properties
 UOpenDoor::UOpenDoor()
 {
@@ -33,7 +38,8 @@ void UOpenDoor::BeginPlay()
 void UOpenDoor::OpenDoor()
 {
 	if (!Owner) { return; }
-	Owner->SetActorRotation(FRotator(0.0f, OpenAngle, 0.0f));
+	//Owner->SetActorRotation(FRotator(0.0f, OpenAngle, 0.0f));
+	OnOpenRequest.Broadcast();
 }
 
 void UOpenDoor::CloseDoor()
