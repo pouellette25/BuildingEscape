@@ -5,11 +5,6 @@
 
 #define OUT
 
-float UOpenDoor::GetOpenAngle() const
-{
-	UE_LOG(LogTemp, Warning, TEXT("Returning door angle from c++: %f"), OpenAngle);
-	return OpenAngle;
-}
 // Sets default values for this component's properties
 UOpenDoor::UOpenDoor()
 {
@@ -35,37 +30,19 @@ void UOpenDoor::BeginPlay()
 	}
 }
 
-void UOpenDoor::OpenDoor()
-{
-	if (!Owner) { return; }
-	//Owner->SetActorRotation(FRotator(0.0f, OpenAngle, 0.0f));
-	OnOpenRequest.Broadcast();
-}
-
-void UOpenDoor::CloseDoor()
-{
-	if (!Owner) { return; }
-	Owner->SetActorRotation(FRotator(0.0f, 0.0f, 0.0f));
-}
-
-
 // Called every frame
 void UOpenDoor::TickComponent( float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction )
 {
 	Super::TickComponent( DeltaTime, TickType, ThisTickFunction );
 
 	// poll the trigger volume 
-	if (GetTotalMassOfActorsOnPlate() > 30.0f) // TODO make threshold a parameter in editor
+	if (GetTotalMassOfActorsOnPlate() > TriggerMass)
 	{
-		OpenDoor();
-		LastDoorOpenTime = GetWorld()->GetTimeSeconds();
+		OnOpen.Broadcast();
 	}
-
-	// check if it's time to close the door
-	if ((GetWorld()->GetTimeSeconds() - LastDoorOpenTime) > DoorCloseDelay)
+	else
 	{
-		CloseDoor();
-		LastDoorOpenTime = 0.0f;
+		OnClose.Broadcast();
 	}
 }
 
